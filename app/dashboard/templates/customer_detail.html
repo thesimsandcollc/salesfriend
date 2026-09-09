@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SalesFriend — {{ customer.name }}</title>
+<style>
+  :root{
+    --bg:#eef0f3; --surface:#fff; --ink:#171a1f; --muted:#5b6472; --line:#dde1e7;
+    --accent:#d6540f; --success:#1f8f72; --success-wash:#dff2ec;
+    --urgent:#c63c4b; --urgent-wash:#f9e2e4; --neutral-wash:#eef0f3;
+    --accent-wash:#fce7db;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,Segoe UI,Inter,sans-serif; }
+  .wrap{ max-width:760px; margin:0 auto; padding:28px 20px 64px; }
+  .headrow{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; }
+  a.back{ color:var(--muted); font-size:13px; text-decoration:none; }
+  h1{ font-size:22px; margin:14px 0 2px; }
+  .phone{ color:var(--muted); font-size:13px; font-family:monospace; margin-bottom:18px; }
+  .chip{ display:inline-block; padding:3px 9px; border-radius:999px; font-size:11.5px; font-weight:700; margin-left:8px; vertical-align:middle; }
+  .chip.not_contacted{ background:var(--neutral-wash); color:var(--muted); }
+  .chip.contacted{ background:var(--accent-wash); color:var(--accent); }
+  .chip.responded{ background:var(--accent-wash); color:var(--accent); }
+  .chip.appointment_set{ background:var(--success-wash); color:var(--success); }
+  .chip.not_interested{ background:var(--neutral-wash); color:var(--muted); }
+  .chip.needs_human{ background:var(--urgent-wash); color:var(--urgent); }
+  .chip.opted_out{ background:var(--urgent-wash); color:var(--urgent); }
+  .btn{ font:inherit; font-weight:600; font-size:13px; padding:7px 13px; border-radius:8px; border:1px solid var(--line); background:var(--surface); color:var(--ink); text-decoration:none; }
+
+  .field-card{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:20px; display:grid; grid-template-columns:1fr 1fr; gap:12px 18px; font-size:14px; }
+  .field-card .label{ font-size:11px; text-transform:uppercase; color:var(--muted); letter-spacing:.04em; }
+  .field-card .value{ font-weight:600; margin-top:2px; }
+
+  .thread{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px; }
+  .row{ display:flex; flex-direction:column; max-width:78%; }
+  .row.out{ align-self:flex-end; align-items:flex-end; }
+  .row.in{ align-self:flex-start; align-items:flex-start; }
+  .bubble{ padding:8px 12px; border-radius:14px; font-size:14px; }
+  .out .bubble{ background:var(--accent); color:#fff; }
+  .in .bubble{ background:var(--neutral-wash); color:var(--ink); }
+  .ts{ font-size:10.5px; color:var(--muted); margin-top:2px; font-family:monospace; }
+  .empty-thread{ color:var(--muted); font-size:13.5px; padding:8px 2px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="headrow">
+    <div>
+      <a class="back" href="/customers">&larr; All customers</a>
+      <h1>{{ customer.name }} <span class="chip {{ customer.status }}">{{ customer.status.replace('_',' ') }}</span></h1>
+      <div class="phone">{{ customer.phone }}</div>
+    </div>
+    <a class="btn" href="/customers/{{ customer.id }}/edit">Edit</a>
+  </div>
+
+  <div class="field-card">
+    <div><div class="label">Vehicle</div><div class="value">{{ ([customer.vehicle_year, customer.vehicle_make, customer.vehicle_model] | select | list | join(" ")) or "—" }}</div></div>
+    <div><div class="label">Last service</div><div class="value">{{ customer.last_service_type or "—" }}{% if customer.last_service_date %} ({{ customer.last_service_date }}){% endif %}</div></div>
+    <div><div class="label">Appointment</div><div class="value">{{ customer.appointment_time or "—" }}</div></div>
+    <div><div class="label">Notes</div><div class="value">{{ customer.notes or "—" }}</div></div>
+  </div>
+
+  <div class="thread">
+    {% if customer.messages %}
+      {% for m in customer.messages %}
+      <div class="row {{ m.direction }}">
+        <div class="bubble">{{ m.body }}</div>
+        <div class="ts">{{ m.created_at }}</div>
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="empty-thread">No texts sent yet — this customer isn't due for the automatic reminder, or "Run outreach check now" hasn't been used yet from the Customers page.</div>
+    {% endif %}
+  </div>
+</div>
+</body>
+</html>

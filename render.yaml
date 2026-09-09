@@ -1,0 +1,83 @@
+# Render Blueprint -- deploys SalesFriend as an always-on web service.
+#
+# Usage: push this repo to GitHub, then in Render: New -> Blueprint -> pick
+# the repo. Render reads this file and creates the service below. You'll be
+# prompted to fill in every envVar marked `sync: false` (the secrets) during
+# that setup -- they are never stored in this file or in git.
+#
+# Plan names and prices are Render's to change -- double check the current
+# ones on your Render dashboard before deploying. As of writing, `0.5c-512mb`
+# is Render's smallest paid compute tier (roughly $7/mo).
+#
+# Why not the free tier? Two reasons this app specifically needs a paid
+# instance:
+#   1. Render's free web services spin down after 15 minutes of no traffic
+#      and take ~30-60s to wake back up. Twilio's webhooks time out well
+#      before that, so a missed-call text or an SMS reply could just... not
+#      happen, the first time in a while someone calls.
+#   2. Persistent disks (below, for the lead database) aren't available on
+#      the free tier.
+#
+# This uses a small persistent disk rather than a separate managed database
+# -- the app already just needs one SQLite file (see app/storage/db.py), and
+# a disk is far cheaper than a managed Postgres instance at this scale. If
+# this later grows into a multi-salesperson product (see the plan doc's
+# rollout), that's the natural point to move to a real managed database
+# instead -- a disk can't be shared across multiple running instances.
+
+services:
+  - type: web
+    name: salesfriend
+    runtime: python
+    plan: 0.5c-512mb
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "python -m scripts.init_db && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    disk:
+      name: salesfriend-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: DATABASE_PATH
+        value: /var/data/salesfriend.db
+
+      # Secrets -- you'll be prompted for these when creating the Blueprint,
+      # or set them later under the service's Environment tab.
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: TWILIO_ACCOUNT_SID
+        sync: false
+      - key: TWILIO_AUTH_TOKEN
+        sync: false
+      - key: TWILIO_PHONE_NUMBER
+        sync: false
+      - key: SALESPERSON_PHONE_NUMBER
+        sync: false
+      - key: DASHBOARD_USERNAME
+        sync: false
+      - key: DASHBOARD_PASSWORD
+        sync: false
+
+      # Non-secret settings -- fine to edit here directly.
+      - key: ANTHROPIC_MODEL
+        value: claude-sonnet-4-5
+      - key: SALESPERSON_NAME
+        value: Mike
+      - key: DEALERSHIP_NAME
+        value: Riverside Auto Group
+      - key: RING_TIMEOUT_SECONDS
+        value: "25"
+      - key: NOTIFY_SALESPERSON
+        value: "true"
+      - key: MOCK_AGENT
+        value: "false"
+      - key: OUTREACH_INTERVAL_DAYS
+        value: "180"
+      - key: OUTREACH_CHECK_INTERVAL_SECONDS
+        value: "3600"
+
+      # Render assigns your service's URL as https://<name-you-picked>.onrender.com
+      # once it first deploys. Update this to match, then redeploy -- it's
+      # used to build the webhook URLs the app hands Twilio.
+      - key: PUBLIC_BASE_URL
+        value: https://CHANGE-ME-AFTER-FIRST-DEPLOY.onrender.com

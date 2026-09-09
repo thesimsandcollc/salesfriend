@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SalesFriend — {{ lead.name or lead.phone }}</title>
+<style>
+  :root{
+    --bg:#eef0f3; --surface:#fff; --ink:#171a1f; --muted:#5b6472; --line:#dde1e7;
+    --accent:#d6540f; --success:#1f8f72; --success-wash:#dff2ec;
+    --urgent:#c63c4b; --urgent-wash:#f9e2e4; --info:#4a5568; --info-wash:#e7e9ee;
+    --accent-wash:#fce7db;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,Segoe UI,Inter,sans-serif; }
+  .wrap{ max-width:760px; margin:0 auto; padding:28px 20px 64px; }
+  a.back{ color:var(--muted); font-size:13px; text-decoration:none; }
+  h1{ font-size:22px; margin:14px 0 2px; }
+  .phone{ color:var(--muted); font-size:13px; font-family:monospace; margin-bottom:18px; }
+  .chip{ display:inline-block; padding:3px 9px; border-radius:999px; font-size:11.5px; font-weight:700; margin-left:8px; vertical-align:middle; }
+  .chip.new{ background:var(--info-wash); color:var(--info); }
+  .chip.texted{ background:var(--accent-wash); color:var(--accent); }
+  .chip.appointment_set{ background:var(--success-wash); color:var(--success); }
+  .chip.needs_human{ background:var(--urgent-wash); color:var(--urgent); }
+
+  .field-card{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px 18px; margin-bottom:20px; display:grid; grid-template-columns:1fr 1fr; gap:12px 18px; font-size:14px; }
+  .field-card .label{ font-size:11px; text-transform:uppercase; color:var(--muted); letter-spacing:.04em; }
+  .field-card .value{ font-weight:600; margin-top:2px; }
+
+  .thread{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px; display:flex; flex-direction:column; gap:10px; }
+  .row{ display:flex; flex-direction:column; max-width:78%; }
+  .row.out{ align-self:flex-end; align-items:flex-end; }
+  .row.in{ align-self:flex-start; align-items:flex-start; }
+  .bubble{ padding:8px 12px; border-radius:14px; font-size:14px; }
+  .out .bubble{ background:var(--accent); color:#fff; }
+  .in .bubble{ background:var(--info-wash); color:var(--ink); }
+  .ts{ font-size:10.5px; color:var(--muted); margin-top:2px; font-family:monospace; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="/dashboard">&larr; All leads</a>
+  <h1>{{ lead.name or lead.phone }} <span class="chip {{ lead.status }}">{{ lead.status.replace('_',' ') }}</span></h1>
+  <div class="phone">{{ lead.phone }}</div>
+
+  <div class="field-card">
+    <div><div class="label">Vehicle interest</div><div class="value">{{ lead.vehicle_interest or "—" }}</div></div>
+    <div><div class="label">Trade-in</div><div class="value">{{ lead.trade_in or "—" }}</div></div>
+    <div><div class="label">Appointment</div><div class="value">{{ lead.appointment_time or "—" }}</div></div>
+    <div><div class="label">Notes</div><div class="value">{{ lead.notes or "—" }}</div></div>
+  </div>
+
+  <div class="thread">
+    {% for m in lead.messages %}
+    <div class="row {{ m.direction }}">
+      <div class="bubble">{{ m.body }}</div>
+      <div class="ts">{{ m.created_at }}</div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+</body>
+</html>

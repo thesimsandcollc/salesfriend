@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SalesFriend — Leads</title>
+<style>
+  :root{
+    --bg:#eef0f3; --surface:#fff; --ink:#171a1f; --muted:#5b6472; --line:#dde1e7;
+    --accent:#d6540f; --success:#1f8f72; --success-wash:#dff2ec;
+    --urgent:#c63c4b; --urgent-wash:#f9e2e4; --info:#4a5568; --info-wash:#e7e9ee;
+    --accent-wash:#fce7db;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,Segoe UI,Inter,sans-serif; }
+  .wrap{ max-width:960px; margin:0 auto; padding:32px 20px 64px; }
+  h1{ font-size:22px; margin:0 0 4px; }
+  p.sub{ color:var(--muted); font-size:13px; margin:0 0 24px; }
+  .stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:22px; }
+  .stat{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .stat .num{ font-size:26px; font-weight:700; }
+  .stat .lbl{ font-size:12px; color:var(--muted); margin-top:2px; }
+  table{ width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--line); border-radius:10px; overflow:hidden; font-size:14px; }
+  th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); padding:10px 14px; border-bottom:1px solid var(--line); }
+  td{ padding:12px 14px; border-bottom:1px solid var(--line); vertical-align:top; }
+  tr:last-child td{ border-bottom:none; }
+  tr:hover{ background:var(--info-wash); }
+  a{ color:inherit; text-decoration:none; display:block; }
+  .chip{ display:inline-block; padding:3px 9px; border-radius:999px; font-size:11.5px; font-weight:700; }
+  .chip.new{ background:var(--info-wash); color:var(--info); }
+  .chip.texted{ background:var(--accent-wash); color:var(--accent); }
+  .chip.appointment_set{ background:var(--success-wash); color:var(--success); }
+  .chip.needs_human{ background:var(--urgent-wash); color:var(--urgent); }
+  .empty{ padding:40px; text-align:center; color:var(--muted); background:var(--surface); border:1px dashed var(--line); border-radius:10px; }
+  @media (max-width:640px){ .stats{ grid-template-columns:repeat(2,1fr); } }
+  nav.top{ display:flex; gap:16px; margin-bottom:18px; font-size:13.5px; font-weight:600; }
+  nav.top a{ display:inline; color:var(--muted); text-decoration:none; padding-bottom:3px; }
+  nav.top a.active{ color:var(--ink); border-bottom:2px solid var(--accent); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top"><a class="active" href="/dashboard">Leads</a><a href="/customers">Customers</a></nav>
+  <h1>SalesFriend Leads</h1>
+  <p class="sub">Every missed call SalesFriend has followed up on. Click a row for the full text thread.</p>
+
+  <div class="stats">
+    <div class="stat"><div class="num">{{ counts.new }}</div><div class="lbl">New</div></div>
+    <div class="stat"><div class="num">{{ counts.texted }}</div><div class="lbl">In progress</div></div>
+    <div class="stat"><div class="num">{{ counts.appointment_set }}</div><div class="lbl">Appointment set</div></div>
+    <div class="stat"><div class="num">{{ counts.needs_human }}</div><div class="lbl">Needs you</div></div>
+  </div>
+
+  {% if leads %}
+  <table>
+    <thead>
+      <tr><th>Lead</th><th>Vehicle interest</th><th>Trade-in</th><th>Appointment</th><th>Status</th><th>Updated</th></tr>
+    </thead>
+    <tbody>
+      {% for lead in leads %}
+      <tr>
+        <td colspan="6" style="padding:0;">
+          <a href="/dashboard/{{ lead.id }}" style="display:grid; grid-template-columns: 1.2fr 1.6fr 1.2fr 1.3fr 1fr 1fr; padding:12px 14px; gap:8px;">
+            <span>{{ lead.name or lead.phone }}</span>
+            <span>{{ lead.vehicle_interest or "—" }}</span>
+            <span>{{ lead.trade_in or "—" }}</span>
+            <span>{{ lead.appointment_time or "—" }}</span>
+            <span><span class="chip {{ lead.status }}">{{ lead.status.replace('_',' ') }}</span></span>
+            <span>{{ lead.updated_at.split("T")[0] }}</span>
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No leads yet — once a call goes unanswered, it'll show up here.</div>
+  {% endif %}
+</div>
+</body>
+</html>

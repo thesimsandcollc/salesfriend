@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>SalesFriend — Customers</title>
+<style>
+  :root{
+    --bg:#eef0f3; --surface:#fff; --ink:#171a1f; --muted:#5b6472; --line:#dde1e7;
+    --accent:#d6540f; --success:#1f8f72; --success-wash:#dff2ec;
+    --urgent:#c63c4b; --urgent-wash:#f9e2e4; --info:#4a5568; --info-wash:#e7e9ee;
+    --accent-wash:#fce7db; --neutral-wash:#eef0f3;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,Segoe UI,Inter,sans-serif; }
+  .wrap{ max-width:1040px; margin:0 auto; padding:32px 20px 64px; }
+  nav.top{ display:flex; gap:16px; margin-bottom:18px; font-size:13.5px; font-weight:600; }
+  nav.top a{ display:inline; color:var(--muted); text-decoration:none; padding-bottom:3px; }
+  nav.top a.active{ color:var(--ink); border-bottom:2px solid var(--accent); }
+  .headrow{ display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; margin-bottom:4px; }
+  h1{ font-size:22px; margin:0 0 4px; }
+  p.sub{ color:var(--muted); font-size:13px; margin:0 0 20px; }
+  .actions{ display:flex; gap:8px; }
+  .btn{ display:inline-block; font:inherit; font-weight:600; font-size:13px; padding:8px 14px; border-radius:8px; border:1px solid var(--line); background:var(--surface); color:var(--ink); text-decoration:none; cursor:pointer; }
+  .btn.primary{ background:var(--accent); border-color:var(--accent); color:#fff; }
+  .banner{ background:var(--success-wash); color:var(--success); padding:10px 14px; border-radius:8px; font-size:13.5px; font-weight:600; margin-bottom:16px; }
+  .stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:22px; }
+  .stat{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .stat .num{ font-size:26px; font-weight:700; }
+  .stat .lbl{ font-size:12px; color:var(--muted); margin-top:2px; }
+  table{ width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--line); border-radius:10px; overflow:hidden; font-size:14px; }
+  th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); padding:10px 14px; border-bottom:1px solid var(--line); }
+  td{ padding:12px 14px; border-bottom:1px solid var(--line); vertical-align:top; }
+  tr:last-child td{ border-bottom:none; }
+  tr:hover{ background:var(--info-wash); }
+  a.row-link{ color:inherit; text-decoration:none; display:grid; grid-template-columns: 1.1fr 1.2fr 1fr 1fr 1fr .8fr; gap:8px; padding:12px 14px; }
+  .chip{ display:inline-block; padding:3px 9px; border-radius:999px; font-size:11.5px; font-weight:700; }
+  .chip.not_contacted{ background:var(--neutral-wash); color:var(--muted); }
+  .chip.contacted{ background:var(--accent-wash); color:var(--accent); }
+  .chip.responded{ background:var(--accent-wash); color:var(--accent); }
+  .chip.appointment_set{ background:var(--success-wash); color:var(--success); }
+  .chip.not_interested{ background:var(--neutral-wash); color:var(--muted); }
+  .chip.needs_human{ background:var(--urgent-wash); color:var(--urgent); }
+  .chip.opted_out{ background:var(--urgent-wash); color:var(--urgent); }
+  .empty{ padding:40px; text-align:center; color:var(--muted); background:var(--surface); border:1px dashed var(--line); border-radius:10px; }
+  @media (max-width:640px){ .stats{ grid-template-columns:repeat(2,1fr); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top"><a href="/dashboard">Leads</a><a class="active" href="/customers">Customers</a></nav>
+
+  {% if request.query_params.get('sent') is not none %}
+  <div class="banner">Outreach check ran — {{ request.query_params.get('sent') }} text(s) sent.</div>
+  {% endif %}
+
+  <div class="headrow">
+    <div>
+      <h1>Service Customers</h1>
+      <p class="sub">Automatic reminders go out every {{ interval_days }} days per customer. Add your client list here.</p>
+    </div>
+    <div class="actions">
+      <form method="post" action="/customers/run-outreach-now" style="display:inline;">
+        <button class="btn" type="submit">Run outreach check now</button>
+      </form>
+      <a class="btn primary" href="/customers/new">Add customer</a>
+    </div>
+  </div>
+
+  <div class="stats">
+    <div class="stat"><div class="num">{{ counts.not_contacted }}</div><div class="lbl">Not yet contacted</div></div>
+    <div class="stat"><div class="num">{{ counts.contacted + counts.responded }}</div><div class="lbl">In conversation</div></div>
+    <div class="stat"><div class="num">{{ counts.appointment_set }}</div><div class="lbl">Appointment set</div></div>
+    <div class="stat"><div class="num">{{ counts.needs_human }}</div><div class="lbl">Needs you</div></div>
+  </div>
+
+  {% if rows %}
+  <table>
+    <thead>
+      <tr><th>Customer</th><th>Vehicle</th><th>Last service</th><th>Status</th><th>Next check-in</th><th>Appointment</th></tr>
+    </thead>
+    <tbody>
+      {% for customer, due_label in rows %}
+      <tr>
+        <td colspan="6" style="padding:0;">
+          <a class="row-link" href="/customers/{{ customer.id }}">
+            <span>{{ customer.name }}</span>
+            <span>{{ ([customer.vehicle_year, customer.vehicle_make, customer.vehicle_model] | select | list | join(" ")) or "—" }}</span>
+            <span>{{ customer.last_service_date or "—" }}</span>
+            <span><span class="chip {{ customer.status }}">{{ customer.status.replace('_',' ') }}</span></span>
+            <span>{{ due_label }}</span>
+            <span>{{ customer.appointment_time or "—" }}</span>
+          </a>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No customers yet — add your client list to start sending service reminders.</div>
+  {% endif %}
+</div>
+</body>
+</html>
