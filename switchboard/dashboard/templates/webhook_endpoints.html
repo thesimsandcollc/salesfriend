@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Switchboard — Webhook endpoints</title>
+<style>
+  :root{
+    --bg:#eef0f3; --surface:#fff; --ink:#171a1f; --muted:#5b6472; --line:#dde1e7;
+    --accent:#2f5fd6; --success:#1f8f72; --success-wash:#dff2ec;
+    --urgent:#c63c4b; --urgent-wash:#f9e2e4; --info:#4a5568; --info-wash:#e7e9ee;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,Segoe UI,Inter,sans-serif; }
+  .wrap{ max-width:880px; margin:0 auto; padding:32px 20px 64px; }
+  h1{ font-size:22px; margin:0 0 4px; }
+  h2{ font-size:15px; margin:28px 0 10px; }
+  p.sub{ color:var(--muted); font-size:13px; margin:0 0 24px; }
+  nav.top{ display:flex; gap:16px; margin-bottom:18px; font-size:13.5px; font-weight:600; }
+  nav.top a{ color:var(--muted); text-decoration:none; padding-bottom:3px; }
+  nav.top a.active{ color:var(--ink); border-bottom:2px solid var(--accent); }
+  table{ width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--line); border-radius:10px; overflow:hidden; font-size:13.5px; margin-bottom:20px; }
+  th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); padding:10px 14px; border-bottom:1px solid var(--line); }
+  td{ padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top; }
+  tr:last-child td{ border-bottom:none; }
+  .chip{ display:inline-block; padding:3px 9px; border-radius:999px; font-size:11.5px; font-weight:700; }
+  .chip.delivered{ background:var(--success-wash); color:var(--success); }
+  .chip.failed, .chip.abandoned{ background:var(--urgent-wash); color:var(--urgent); }
+  .chip.pending{ background:var(--info-wash); color:var(--info); }
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:20px; }
+  input[type=text]{ padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13.5px; }
+  .primary{ background:var(--accent); color:#fff; border:none; border-radius:6px; padding:8px 14px; font-size:13.5px; cursor:pointer; }
+  button{ background:none; border:1px solid var(--line); border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer; color:var(--urgent); }
+  form.inline{ display:inline; }
+  .mono{ font-family:ui-monospace,Menlo,monospace; font-size:12.5px; word-break:break-all; }
+  .empty{ padding:24px; text-align:center; color:var(--muted); background:var(--surface); border:1px dashed var(--line); border-radius:10px; font-size:13.5px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top">
+    <a href="/dashboard">Activity</a>
+    <a href="/dashboard/api-keys">API keys</a>
+    <a class="active" href="/dashboard/webhooks">Webhooks</a>
+  </nav>
+  <h1>Webhook endpoints</h1>
+  <p class="sub">Every event (an inbound message, a delivery status, a call ending) is POSTed here, signed with the endpoint's secret. See the README for how to verify the signature.</p>
+
+  <div class="card">
+    <form method="post" action="/dashboard/webhooks">
+      <input type="text" name="url" placeholder="https://your-app.example.com/webhooks/switchboard" style="width:340px;" required>
+      <input type="text" name="event_types" placeholder="all" style="width:140px;" value="all">
+      <button class="primary" type="submit">Add endpoint</button>
+    </form>
+  </div>
+
+  <table>
+    <thead><tr><th>URL</th><th>Events</th><th>Secret</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for e in endpoints %}
+      <tr>
+        <td class="mono">{{ e.url }}</td>
+        <td>{{ e.event_types }}</td>
+        <td class="mono">{{ e.signing_secret }}</td>
+        <td><span class="chip {{ 'delivered' if e.active else 'abandoned' }}">{{ 'active' if e.active else 'inactive' }}</span></td>
+        <td>
+          {% if e.active %}
+          <form class="inline" method="post" action="/dashboard/webhooks/{{ e.endpoint_id }}/deactivate">
+            <button type="submit">Deactivate</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <h2>Recent deliveries</h2>
+  <form method="post" action="/dashboard/webhooks/retry-now" style="margin-bottom:12px;">
+    <button class="primary" type="submit">Retry due deliveries now</button>
+  </form>
+  {% if deliveries %}
+  <table>
+    <thead><tr><th>Event</th><th>Endpoint</th><th>Status</th><th>Attempts</th><th>Last code</th><th>Next attempt</th></tr></thead>
+    <tbody>
+      {% for d in deliveries %}
+      <tr>
+        <td>{{ d.event_type }}</td>
+        <td class="mono">{{ d.endpoint_id }}</td>
+        <td><span class="chip {{ d.status }}">{{ d.status }}</span></td>
+        <td>{{ d.attempts }}</td>
+        <td>{{ d.last_response_code or "—" }}</td>
+        <td>{{ d.next_attempt_at.split("T")[0] if d.status in ("pending", "failed") else "—" }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No deliveries yet.</div>
+  {% endif %}
+</div>
+</body>
+</html>

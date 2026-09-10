@@ -1,0 +1,54 @@
+# Render Blueprint -- deploys Switchboard as an always-on service, separate
+# from SalesFriend's own render.yaml at the repo root (they're two different
+# services that happen to share a repo). See that file's comments for the
+# general reasoning on plan choice and the persistent disk.
+#
+# Usage: in Render, New -> Blueprint -> pick this repo, with Root Directory
+# left at the repo root (not "switchboard") -- every module here imports
+# itself as `switchboard.xxx`, so it needs the repo root on the path, the
+# same way `pip install -e .`-style layouts do. Point Render at this file
+# specifically (Blueprint file path: switchboard/render.yaml).
+
+services:
+  - type: web
+    name: switchboard
+    runtime: python
+    plan: 0.5c-512mb
+    buildCommand: "pip install -r switchboard/requirements.txt"
+    startCommand: "python -m switchboard.scripts.init_db && uvicorn switchboard.main:app --host 0.0.0.0 --port $PORT"
+    healthCheckPath: /health
+    disk:
+      name: switchboard-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: SWITCHBOARD_DATABASE_PATH
+        value: /var/data/switchboard.db
+
+      - key: SWITCHBOARD_CARRIER
+        value: telnyx
+
+      # Secrets -- you'll be prompted for these when creating the Blueprint.
+      - key: TELNYX_API_KEY
+        sync: false
+      - key: TELNYX_PUBLIC_KEY
+        sync: false
+      - key: TELNYX_MESSAGING_PROFILE_ID
+        sync: false
+      - key: TELNYX_CONNECTION_ID
+        sync: false
+      - key: SWITCHBOARD_DASHBOARD_USERNAME
+        sync: false
+      - key: SWITCHBOARD_DASHBOARD_PASSWORD
+        sync: false
+
+      - key: SWITCHBOARD_WEBHOOK_MAX_ATTEMPTS
+        value: "6"
+      - key: SWITCHBOARD_WEBHOOK_RETRY_INTERVAL_SECONDS
+        value: "60"
+
+      # Render assigns your service's URL once it first deploys. Update this
+      # to match, then redeploy -- it's what's handed to Telnyx as the
+      # call-control webhook URL.
+      - key: SWITCHBOARD_PUBLIC_BASE_URL
+        value: https://CHANGE-ME-AFTER-FIRST-DEPLOY.onrender.com
