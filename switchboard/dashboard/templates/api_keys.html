@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Switchboard — API keys</title>
+<style>
+  :root{
+    --bg:#eef0f3; --surface:#fff; --ink:#171a1f; --muted:#5b6472; --line:#dde1e7;
+    --accent:#2f5fd6; --success:#1f8f72; --success-wash:#dff2ec;
+    --urgent:#c63c4b; --urgent-wash:#f9e2e4;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,Segoe UI,Inter,sans-serif; }
+  .wrap{ max-width:760px; margin:0 auto; padding:32px 20px 64px; }
+  h1{ font-size:22px; margin:0 0 4px; }
+  p.sub{ color:var(--muted); font-size:13px; margin:0 0 24px; }
+  nav.top{ display:flex; gap:16px; margin-bottom:18px; font-size:13.5px; font-weight:600; }
+  nav.top a{ color:var(--muted); text-decoration:none; padding-bottom:3px; }
+  nav.top a.active{ color:var(--ink); border-bottom:2px solid var(--accent); }
+  table{ width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--line); border-radius:10px; overflow:hidden; font-size:13.5px; margin-bottom:24px; }
+  th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); padding:10px 14px; border-bottom:1px solid var(--line); }
+  td{ padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top; }
+  tr:last-child td{ border-bottom:none; }
+  .chip{ display:inline-block; padding:3px 9px; border-radius:999px; font-size:11.5px; font-weight:700; }
+  .chip.active{ background:var(--success-wash); color:var(--success); }
+  .chip.revoked{ background:var(--urgent-wash); color:var(--urgent); }
+  form.inline{ display:inline; }
+  button{ background:none; border:1px solid var(--line); border-radius:6px; padding:4px 10px; font-size:12px; cursor:pointer; color:var(--urgent); }
+  .card{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:16px; margin-bottom:24px; }
+  input[type=text]{ padding:8px 10px; border:1px solid var(--line); border-radius:6px; font-size:13.5px; width:220px; }
+  .primary{ background:var(--accent); color:#fff; border:none; border-radius:6px; padding:8px 14px; font-size:13.5px; cursor:pointer; }
+  .new-key{ background:var(--success-wash); border:1px solid var(--success); border-radius:8px; padding:14px; margin-bottom:24px; font-size:13.5px; }
+  .mono{ font-family:ui-monospace,Menlo,monospace; font-size:12.5px; word-break:break-all; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top">
+    <a href="/dashboard">Activity</a>
+    <a class="active" href="/dashboard/api-keys">API keys</a>
+    <a href="/dashboard/webhooks">Webhooks</a>
+  </nav>
+  <h1>API keys</h1>
+  <p class="sub">Every call to /v1/* needs <span class="mono">Authorization: Bearer &lt;key&gt;</span>.</p>
+
+  {% if new_key %}
+  <div class="new-key">
+    <strong>New key created — copy it now, it won't be shown again:</strong>
+    <div class="mono" style="margin-top:8px;">{{ new_key }}</div>
+  </div>
+  {% endif %}
+
+  <div class="card">
+    <form method="post" action="/dashboard/api-keys">
+      <input type="text" name="label" placeholder="Label (e.g. 'production')" required>
+      <button class="primary" type="submit">Create key</button>
+    </form>
+  </div>
+
+  <table>
+    <thead><tr><th>Label</th><th>Created</th><th>Last used</th><th>Status</th><th></th></tr></thead>
+    <tbody>
+      {% for k in keys %}
+      <tr>
+        <td>{{ k.label }}</td>
+        <td>{{ k.created_at.split("T")[0] }}</td>
+        <td>{{ k.last_used_at.split("T")[0] if k.last_used_at else "never" }}</td>
+        <td><span class="chip {{ 'revoked' if k.revoked_at else 'active' }}">{{ 'revoked' if k.revoked_at else 'active' }}</span></td>
+        <td>
+          {% if not k.revoked_at %}
+          <form class="inline" method="post" action="/dashboard/api-keys/{{ k.id }}/revoke">
+            <button type="submit">Revoke</button>
+          </form>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+</body>
+</html>

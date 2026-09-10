@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Switchboard — Activity</title>
+<style>
+  :root{
+    --bg:#eef0f3; --surface:#fff; --ink:#171a1f; --muted:#5b6472; --line:#dde1e7;
+    --accent:#2f5fd6; --success:#1f8f72; --success-wash:#dff2ec;
+    --urgent:#c63c4b; --urgent-wash:#f9e2e4; --info:#4a5568; --info-wash:#e7e9ee;
+    --accent-wash:#e3eafc;
+  }
+  *{ box-sizing:border-box; }
+  body{ margin:0; background:var(--bg); color:var(--ink); font-family:-apple-system,Segoe UI,Inter,sans-serif; }
+  .wrap{ max-width:1040px; margin:0 auto; padding:32px 20px 64px; }
+  h1{ font-size:22px; margin:0 0 4px; }
+  h2{ font-size:15px; margin:28px 0 10px; }
+  p.sub{ color:var(--muted); font-size:13px; margin:0 0 24px; }
+  .stats{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:8px; }
+  .stat{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .stat .num{ font-size:26px; font-weight:700; }
+  .stat .lbl{ font-size:12px; color:var(--muted); margin-top:2px; }
+  table{ width:100%; border-collapse:collapse; background:var(--surface); border:1px solid var(--line); border-radius:10px; overflow:hidden; font-size:13.5px; }
+  th{ text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); padding:10px 14px; border-bottom:1px solid var(--line); }
+  td{ padding:10px 14px; border-bottom:1px solid var(--line); vertical-align:top; }
+  tr:last-child td{ border-bottom:none; }
+  .chip{ display:inline-block; padding:3px 9px; border-radius:999px; font-size:11.5px; font-weight:700; }
+  .chip.delivered, .chip.completed, .chip.active{ background:var(--success-wash); color:var(--success); }
+  .chip.failed, .chip.undelivered{ background:var(--urgent-wash); color:var(--urgent); }
+  .chip.queued, .chip.sent, .chip.received, .chip.initiated, .chip.in-progress{ background:var(--info-wash); color:var(--info); }
+  .empty{ padding:28px; text-align:center; color:var(--muted); background:var(--surface); border:1px dashed var(--line); border-radius:10px; font-size:13.5px; }
+  nav.top{ display:flex; gap:16px; margin-bottom:18px; font-size:13.5px; font-weight:600; }
+  nav.top a{ color:var(--muted); text-decoration:none; padding-bottom:3px; }
+  nav.top a.active{ color:var(--ink); border-bottom:2px solid var(--accent); }
+  .mono{ font-family:ui-monospace,Menlo,monospace; font-size:12.5px; }
+  .pill-row{ display:flex; flex-wrap:wrap; gap:6px; }
+  .pill{ background:var(--info-wash); color:var(--info); padding:3px 9px; border-radius:999px; font-size:12px; }
+  @media (max-width:640px){ .stats{ grid-template-columns:repeat(2,1fr); } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="top">
+    <a class="active" href="/dashboard">Activity</a>
+    <a href="/dashboard/api-keys">API keys</a>
+    <a href="/dashboard/webhooks">Webhooks</a>
+  </nav>
+  <h1>Switchboard</h1>
+  <p class="sub">Carrier: <strong>{{ carrier }}</strong>{% if carrier == "mock" %} — no real messages/calls are being sent; see the README for how to simulate inbound events.{% endif %}</p>
+
+  <div class="stats">
+    <div class="stat"><div class="num">{{ messages|length }}</div><div class="lbl">Recent messages</div></div>
+    <div class="stat"><div class="num">{{ calls|length }}</div><div class="lbl">Recent calls</div></div>
+    <div class="stat"><div class="num">{{ numbers|length }}</div><div class="lbl">Numbers owned</div></div>
+    <div class="stat"><div class="num">{{ opt_outs|length }}</div><div class="lbl">Opted out</div></div>
+  </div>
+
+  <h2>Messages</h2>
+  {% if messages %}
+  <table>
+    <thead><tr><th>ID</th><th>Direction</th><th>From</th><th>To</th><th>Body</th><th>Status</th><th>Sent</th></tr></thead>
+    <tbody>
+      {% for m in messages %}
+      <tr>
+        <td class="mono">{{ m.message_id }}</td>
+        <td>{{ m.direction }}</td>
+        <td class="mono">{{ m.from_number }}</td>
+        <td class="mono">{{ m.to_number }}</td>
+        <td>{{ m.body[:60] }}{% if m.body|length > 60 %}…{% endif %}</td>
+        <td><span class="chip {{ m.status }}">{{ m.status }}</span></td>
+        <td>{{ m.created_at.split("T")[0] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No messages yet.</div>
+  {% endif %}
+
+  <h2>Calls</h2>
+  {% if calls %}
+  <table>
+    <thead><tr><th>ID</th><th>From</th><th>To</th><th>Status</th><th>Started</th></tr></thead>
+    <tbody>
+      {% for c in calls %}
+      <tr>
+        <td class="mono">{{ c.call_id }}</td>
+        <td class="mono">{{ c.from_number }}</td>
+        <td class="mono">{{ c.to_number }}</td>
+        <td><span class="chip {{ c.status }}">{{ c.status }}</span></td>
+        <td>{{ c.created_at.split("T")[0] }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <div class="empty">No calls yet.</div>
+  {% endif %}
+
+  <h2>Numbers</h2>
+  {% if numbers %}
+  <div class="pill-row">{% for n in numbers %}<span class="pill mono">{{ n.phone_number }}</span>{% endfor %}</div>
+  {% else %}
+  <div class="empty">No numbers provisioned yet -- POST /v1/numbers, or use available numbers from GET /v1/numbers/available.</div>
+  {% endif %}
+</div>
+</body>
+</html>
